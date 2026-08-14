@@ -77,7 +77,7 @@
     /* Force the imported web font */
     font-family: "Noto Color Emoji", sans-serif;
     font-weight: 400;
-    margin-left: 2px; /* Gives a tiny bit of breathing room next to the text */
+    margin-left: 2px;
   }
 
   .weather-source {
@@ -121,7 +121,7 @@
    EDIT THESE SETTINGS
    ========================================================= */
 
-const CONFIG = {
+var CONFIG = {
   // Name displayed beside the weather:
   locationName: "Launceston",
 
@@ -152,34 +152,36 @@ const CONFIG = {
 function getTimezoneLabel() {
   if (CONFIG.forceTimezoneLabel) return CONFIG.forceTimezoneLabel;
 
-  const parts = new Intl.DateTimeFormat("en-AU", {
+  var parts = new Intl.DateTimeFormat("en-AU", {
     timeZone: CONFIG.timezone,
     timeZoneName: "longOffset"
   }).formatToParts(new Date());
 
-  const offset = parts.find(p => p.type === "timeZoneName")?.value || "";
+  // Older browser safe compatibility (removed optional chaining syntax)
+  var tzPart = parts.find(function(p) { return p.type === "timeZoneName"; });
+  var offset = tzPart ? tzPart.value : "";
 
   // Australia/Hobart:
   // GMT+10:00 = AEST
   // GMT+11:00 = AEDT
-  if (offset.includes("+11")) return "AEDT";
-  if (offset.includes("+10")) return "AEST";
+  if (offset.indexOf("+11") !== -1) return "AEDT";
+  if (offset.indexOf("+10") !== -1) return "AEST";
 
   // Generic fallback for other locations.
   return offset.replace("GMT", "UTC") || "LOCAL";
 }
 
 function updateClock() {
-  const now = new Date();
+  var now = new Date();
 
-  const timeOptions = {
+  var timeOptions = {
     timeZone: CONFIG.timezone,
     hour: "2-digit",
     minute: "2-digit",
     hour12: !CONFIG.use24Hour
   };
 
-  const dateOptions = {
+  var dateOptions = {
     timeZone: CONFIG.timezone,
     day: "2-digit",
     month: "2-digit",
@@ -204,7 +206,7 @@ setInterval(updateClock, 250);
    ========================================================= */
 
 function weatherDescription(code) {
-  const map = {
+  var map = {
     0: ["Clear", "☀️"],
     1: ["Mainly clear", "🌤️"],
     2: ["Partly cloudy", "⛅"],
@@ -218,3 +220,62 @@ function weatherDescription(code) {
     57: ["Heavy freezing drizzle", "🌧️"],
     61: ["Light rain", "🌦️"],
     63: ["Rain", "🌧️"],
+    65: ["Heavy rain", "🌧️"],
+    66: ["Freezing rain", "🌧️"],
+    67: ["Heavy freezing rain", "🌧️"],
+    71: ["Light snow", "🌨️"],
+    73: ["Snow", "🌨️"],
+    75: ["Heavy snow", "❄️"],
+    77: ["Snow grains", "❄️"],
+    80: ["Rain showers", "🌦️"],
+    81: ["Rain showers", "🌧️"],
+    82: ["Heavy showers", "⛈️"],
+    85: ["Snow showers", "🌨️"],
+    86: ["Heavy snow showers", "❄️"],
+    95: ["Thunderstorm", "⛈️"],
+    96: ["Thunderstorm + hail", "⛈️"],
+    99: ["Thunderstorm + hail", "⛈️"]
+  };
+
+  return map[code] || ["Unknown", "🌤️"];
+}
+
+async function updateWeather() {
+  var error = document.getElementById("error");
+
+  var url =
+    "https://api.open-meteo.com/v1/forecast" +
+    "?latitude=" + encodeURIComponent(CONFIG.latitude) +
+    "&longitude=" + encodeURIComponent(CONFIG.longitude) +
+    "&current=temperature_2m,weather_code" +
+    "&temperature_unit=celsius" +
+    "&timezone=" + encodeURIComponent(CONFIG.timezone);
+
+  try {
+    var response = await fetch(url, { cache: "no-store" });
+
+    if (!response.ok) throw new Error("Weather API error");
+
+    var data = await response.json();
+
+    var weatherData = weatherDescription(data.current.weather_code);
+    var condition = weatherData[0];
+    var icon = weatherData[1];
+
+    document.getElementById("location").textContent = CONFIG.locationName;
+    document.getElementById("temperature").textContent =
+      Math.round(data.current.temperature_2m) + "°C";
+    document.getElementById("condition").textContent = condition;
+    document.getElementById("icon").textContent = icon;
+
+    error.style.display = "none";
+  } catch (e) {
+    error.style.display = "block";
+  }
+}
+
+updateWeather();
+setInterval(updateWeather, CONFIG.weatherRefreshMinutes * 60 * 1000);
+</script>
+</body>
+</html>
