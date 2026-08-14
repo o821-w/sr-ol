@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Streamrun Time + Weather</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+
 <style>
   /* ===== EASY DESIGN SETTINGS ===== */
   :root {
@@ -70,7 +74,10 @@
 
   .weather-icon {
     font-size: 18px;
-    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+    /* Force the imported web font */
+    font-family: "Noto Color Emoji", sans-serif;
+    font-weight: 400;
+    margin-left: 2px; /* Gives a tiny bit of breathing room next to the text */
   }
 
   .weather-source {
@@ -211,60 +218,3 @@ function weatherDescription(code) {
     57: ["Heavy freezing drizzle", "🌧️"],
     61: ["Light rain", "🌦️"],
     63: ["Rain", "🌧️"],
-    65: ["Heavy rain", "🌧️"],
-    66: ["Freezing rain", "🌧️"],
-    67: ["Heavy freezing rain", "🌧️"],
-    71: ["Light snow", "🌨️"],
-    73: ["Snow", "🌨️"],
-    75: ["Heavy snow", "❄️"],
-    77: ["Snow grains", "❄️"],
-    80: ["Rain showers", "🌦️"],
-    81: ["Rain showers", "🌧️"],
-    82: ["Heavy showers", "⛈️"],
-    85: ["Snow showers", "🌨️"],
-    86: ["Heavy snow showers", "❄️"],
-    95: ["Thunderstorm", "⛈️"],
-    96: ["Thunderstorm + hail", "⛈️"],
-    99: ["Thunderstorm + hail", "⛈️"]
-  };
-
-  return map[code] || ["Unknown", "🌤️"];
-}
-
-async function updateWeather() {
-  const error = document.getElementById("error");
-
-  const url =
-    "https://api.open-meteo.com/v1/forecast" +
-    `?latitude=${encodeURIComponent(CONFIG.latitude)}` +
-    `&longitude=${encodeURIComponent(CONFIG.longitude)}` +
-    `&current=temperature_2m,weather_code` +
-    `&temperature_unit=celsius` +
-    `&timezone=${encodeURIComponent(CONFIG.timezone)}`;
-
-  try {
-    const response = await fetch(url, { cache: "no-store" });
-
-    if (!response.ok) throw new Error("Weather API error");
-
-    const data = await response.json();
-
-    const [condition, icon] = weatherDescription(data.current.weather_code);
-
-    document.getElementById("location").textContent = CONFIG.locationName;
-    document.getElementById("temperature").textContent =
-      `${Math.round(data.current.temperature_2m)}°C`;
-    document.getElementById("condition").textContent = condition;
-    document.getElementById("icon").textContent = icon;
-
-    error.style.display = "none";
-  } catch (e) {
-    error.style.display = "block";
-  }
-}
-
-updateWeather();
-setInterval(updateWeather, CONFIG.weatherRefreshMinutes * 60 * 1000);
-</script>
-</body>
-</html>
